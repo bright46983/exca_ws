@@ -1,22 +1,36 @@
 #!/usr/bin/env python
 
 import rospy
-from grid_map_msgs.srv import *
+from geometry_msgs.msg import PoseWithCovarianceStamped , Pose
 
 
 
 if __name__ == "__main__":
-    rospy.wait_for_service('/elevation_mapping/get_submap')
+    rospy.init_node("fake_pose")
+    pub = rospy.Publisher("/fake_pos",PoseWithCovarianceStamped,queue_size=1)
+
+    r = rospy.Rate(1)
+
+
+
+
+while not rospy.is_shutdown():
     try:
-        req = GetGridMap()
-        req.frame_id = "map"
-        req.position_x = 0
-        req.position_y = 0
-        req.lenght_x = 2.5
-        req.lenght_y = 1
-        get_submap = rospy.ServiceProxy(/elevation_mapping/get_submap, GetGridMap)
-        submap = get_submap(req)
+        pos = PoseWithCovarianceStamped()
+        pos.header.frame_id = "map"
+        pos.pose.pose.position.x = 0
+        pos.pose.pose.position.y = 0
+        pos.pose.pose.position.z = 0
+        pos.pose.pose.orientation.x = 0
+        pos.pose.pose.orientation.y = 0
+        pos.pose.pose.orientation.z = 0
+        pos.pose.pose.orientation.w = 1
+        pub.publish(pos)
+        r.sleep()
         
-        data = submap.data
-    except rospy.ServiceException as e:
-        print("Service call failed: %s"%e)
+        
+        
+    except rospy.ServiceException, e:
+        print "Service call failed: %s"%e
+    
+rospy.spin()
