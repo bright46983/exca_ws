@@ -1,0 +1,8 @@
+<launch>
+
+   <include file="$(find elavation_mapping_test)/launch/ydlidar.launch" />
+   <include file="$(find elavation_mapping_test)/launch/scanner_urdf.launch" />
+   <include file="$(find elavation_mapping_test)/launch/laser_assembler.launch" />
+   <include file="$(find elavation_mapping_test)/launch/dynamixel_controllers.launch" />
+
+</launch>
