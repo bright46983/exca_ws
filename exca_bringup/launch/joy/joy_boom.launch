@@ -15,8 +15,8 @@
     <remap from="cmd_vel" to="$(arg cmd_vel)" />
   </node>
 
-  <group ns="torso_controller">
+  <!-- <group ns="torso_controller">
     <node pkg="joy_teleop" type="incrementer_server.py" name="incrementer"/>
-  </group>
+  </group> -->
 
 </launch>
