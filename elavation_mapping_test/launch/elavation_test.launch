@@ -7,15 +7,17 @@
     <rosparam command="load" file="$(find elavation_mapping_test)/config/robot.yaml" />
     <rosparam command="load" file="$(find elavation_mapping_test)/config/map.yaml" />
     <rosparam command="load" file="$(find elavation_mapping_test)/config/sensor.yaml" />
+    <rosparam command="load" file="$(find elavation_mapping_test)/config/postprocessor_pipeline.yaml" />
   </node>
 
   <!-- Launch visualizations for the resulting elevation map -->
   <include file="$(find elevation_mapping_demos)/launch/visualization.launch" />
 
+
   <!-- Launch RViz with the demo configuration -->
   <node name="rviz" pkg="rviz" type="rviz" args="-d $(find elevation_mapping_demos)/rviz/elevation_map_visualization.rviz" />
 
- 
+  
 
 
 </launch>

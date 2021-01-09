@@ -7,7 +7,7 @@
   <joint name="scanner_joint" type="revolute">
       <axis xyz="0 1 0"/>
       <limit effort="1000.0" lower="0.0" upper="3.14159" velocity="0.5"/>
-      <origin rpy="0 0 0" xyz="0.0 0.0 0.9"/>
+      <origin rpy="0 0 0" xyz="0.0 0.0 0.4"/>
       <parent link="laser_base"/>
       <child link="scanner_link"/>
   </joint>
@@ -15,7 +15,7 @@
   <link name="scanner_link"/>
 
   <joint name="laser_joint" type="fixed">
-      <origin rpy="3.141593 0.0 3.141593" xyz="0.0 0.0 -0.003"/>
+      <origin rpy="3.141593 1.6008 3.141593" xyz="0.0 0.0 0.0"/>
       <parent link="scanner_link"/>
       <child link="laser_frame"/>
   </joint>

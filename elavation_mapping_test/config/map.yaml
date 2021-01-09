@@ -1,17 +1,17 @@
-length_in_x: 2.5
-length_in_y: 2.5
-position_x: 0.0
+length_in_x: 1.5 #Go both + -
+length_in_y: 0.5
+position_x: 0.0 
 position_y: 0.0
 resolution: 0.01
 min_variance: 0.000009
 max_variance: 0.01
 mahalanobis_distance_threshold: 2.5
-multi_height_noise: 0.00000009 ##Higher --> more height noise
+multi_height_noise: 0.00009 ##Higher --> more height noise
 enable_continuous_cleanup: false
 enable_visibility_cleanup: true
-visibility_cleanup_rate: 1
+visibility_cleanup_rate: 10
 
-scanning_duration: 2 ##bigger values help to reduce faulty map cleanups.
+scanning_duration: 3 ##bigger values help to reduce faulty map cleanups.
 ##Set this roughly to the duration it takes between two consecutive full scans
 sensor_cutoff_min_depth: 0.2
 sensor_cutoff_max_depth: 2

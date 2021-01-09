@@ -6,17 +6,17 @@ from trajectory_msgs.msg import JointTrajectory,JointTrajectoryPoint
 rospy.init_node("scanner_sweep")
 pub = rospy.Publisher("/dynamixel_workbench/joint_trajectory",JointTrajectory,queue_size=1)
 
-r = rospy.Rate(15)
-ang = -90
+r = rospy.Rate(15)#15
+ang = 0
 
 
 
 
 while not rospy.is_shutdown():
     try:
-        if ang == -90:
+        if ang == 0:
             t = -1
-        elif ang == -175:
+        elif ang == -85:
             t= +1
         ang = ang+t
         jt = JointTrajectory()
