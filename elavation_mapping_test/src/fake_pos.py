@@ -5,6 +5,7 @@ from geometry_msgs.msg import PoseWithCovarianceStamped , Pose
 
 
 
+
 if __name__ == "__main__":
     rospy.init_node("fake_pose")
     pub = rospy.Publisher("/fake_pos",PoseWithCovarianceStamped,queue_size=1)
