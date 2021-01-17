@@ -37,22 +37,22 @@ def cmd_setup(cmd,x,y,z,w):
 def GotoPoint(req): 
     global joint_state
     cmd = Twist()
-    time_limit = 5
-    speed = 0.8
+    time_limit = 15
+    speed = 1
 
     goal = np.array([[-1 ,0 ,0 ,0],
                        [0 ,0 ,1 ,0],
                        [0 ,1 ,0 ,0],
                        [0 ,0 ,0 ,1]])
-    goal[0][3] = req.goal[0]
-    goal[1][3] = req.goal[1]
-    goal[2][3] = req.goal[2]
-    rospy.loginfo('Go to point: %f',req.goal)
+    goal[0,3] = req.goal[0]
+    goal[1,3] = req.goal[1]
+    goal[2,3] = req.goal[2]
 
     ik = exca_chain.inverse_kinematics(goal,initial_position=[0,0,0.35,0.35,0.35,0])
     goal_diff = ik[2:5] - joint_state[1:4]
-    rospy.loginfo('Go to point: '+ req.goal)
-
+    #rospy.loginfo('Go to point: '+ req.goal)
+    print(ik)
+    print(joint_state)
     boom_cw = 1 if goal_diff[0] > 0 else -1
     arm_cw = -1 if goal_diff[1] > 0 else 1
     buk_cw = -1 if goal_diff[2] > 0 else 1
@@ -61,38 +61,44 @@ def GotoPoint(req):
     cmd.linear.y = speed*arm_cw #Arm
     cmd.linear.z = speed*buk_cw #Buk
     pub.publish(cmd)
-    print(cmd)
 
+    boom_check = True
+    arm_check = True
+    buk_check = True
     start_time = time.time()
     check = 0
     while check < 3:
-        if joint_state[1]*boom_cw > ik[2]*boom_cw:
+        if joint_state[1]*boom_cw > ik[2]*boom_cw and boom_check:
             cmd.linear.x = 0
             check = check + 1
             ik[2] = ik[2]-99999*boom_cw
+            boom_check = False
             rospy.loginfo('Boom Reached')
             pub.publish(cmd)
 
-        if joint_state[2]*-arm_cw > ik[3]*-arm_cw:
+        if joint_state[2]*-arm_cw > ik[3]*-arm_cw and arm_check:
             cmd.linear.y = 0
             check = check + 1
-            ik[3] = ik[3]-99999*-arm_cw
+            arm_check = False
             rospy.loginfo('Arm Reached')
             pub.publish(cmd)
 
-        if joint_state[3]*-buk_cw > ik[4]*-buk_cw:
+        if joint_state[3]*-buk_cw > ik[4]*-buk_cw and buk_check:
             cmd.linear.z = 0
             check = check + 1
             ik[4] = ik[4]-99999*-buk_cw
+            buk_check = False
             rospy.loginfo('Bucket Reached')
             pub.publish(cmd)
         
         time_used = time.time() - start_time 
         if (time_used > time_limit):
+             time.sleep(0.1)
              cmd_setup(cmd,0,0,0,0)
              rospy.loginfo('Time Out')
              return ExcaGoalResponse(False)
 
+    time.sleep(0.1)
     cmd_setup(cmd,0,0,0,0)
     rospy.loginfo('Point Reached')
     return ExcaGoalResponse(True)
@@ -106,15 +112,15 @@ def GotoPoint(req):
 def Penetrate(req): ##Penetrate
     cmd = Twist()
     time_limit = 5
-    depth_goal =  req.penetrate_goal #req.depth_goal#From srv
     
     tf.waitForTransform("/base_footprint","/bucket_tip", rospy.Time(), rospy.Duration(1.0))
     t = tf.getLatestCommonTime("/base_footprint","/bucket_tip")
     position, quaternion = tf.lookupTransform("/base_footprint","/bucket_tip", t)
     depth = position[2]#Lookup transform
+    depth_goal =  depth - req.penetrate_goal 
     
     time.sleep(1)
-    cmd_setup(cmd,0,-1.8,0,0)
+    cmd_setup(cmd,1,-0.8,0,0)
 
     start_time = time.time()
     while depth > depth_goal:
@@ -138,14 +144,13 @@ def Penetrate(req): ##Penetrate
 def Drag(req): ##Drag
     cmd = Twist()
     time_limit = 10
-    length_goal =  req.drag_goal #req.depth_goal#From srv
-    
     
     tf.waitForTransform("/base_footprint","/bucket_tip", rospy.Time(), rospy.Duration(1.0))
     t = tf.getLatestCommonTime("/base_footprint","/bucket_tip")
     position, quaternion = tf.lookupTransform("/base_footprint","/bucket_tip", t)
     length = position[0]#Lookup transform
-    
+    length_goal =  length - req.drag_goal #req.depth_goal#From srv
+
     time.sleep(1)
     cmd_setup(cmd,-1,-1.1,0,0) 
 
@@ -167,7 +172,6 @@ def Drag(req): ##Drag
 
 def Closing(req): ##Bucket
     cmd = Twist()
-    
     time.sleep(1)
     cmd_setup(cmd,0,0.0,-1.8,0)
     rospy.loginfo('Closing the bucket')
@@ -176,7 +180,6 @@ def Closing(req): ##Bucket
     time.sleep(3)
     cmd_setup(cmd,0,0,0,0)
     return ExcaGoalResponse(True)
-
 
 def step6(cmd): ##Swing
     time.sleep(2)
@@ -189,6 +192,17 @@ def step7(cmd): ##Dump
     cmd_setup(cmd,0,1.85,2,0)
     time.sleep(2)
     cmd_setup(cmd,0,0,0,0)
+
+def Recovery(req): 
+    cmd = Twist()
+    rospy.loginfo('Recovering Excavator')
+    time.sleep(2)
+    cmd_setup(cmd,-1.8,0,0,0)
+    time.sleep(2.5)
+    cmd_setup(cmd,0,1.5,1.8,0)
+    time.sleep(2)
+    cmd_setup(cmd,0,0,0,0)
+    return ExcaGoalResponse(True)
 
 def Stop(req): ##Return
     cmd = Twist()
@@ -240,6 +254,7 @@ if __name__ == "__main__":
     stop_srv = rospy.Service('stop',ExcaGoal,Stop)
     point_srv = rospy.Service('gotopoint',ExcaGoal,GotoPoint)
     close_srv = rospy.Service('close',ExcaGoal,Closing)
+    recovery_srv = rospy.Service('recovery',ExcaGoal,Recovery)
 
     pub = rospy.Publisher("/input_joy/cmd_vel",Twist,queue_size=1)
     sub = rospy.Subscriber("/joint_states",JointState,stateCallback)

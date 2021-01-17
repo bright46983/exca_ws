@@ -7,7 +7,7 @@ from mpl_toolkits.mplot3d import Axes3D
 orientation_axis = "X"
 target_orientation = np.eye(4)
 target_pos = np.array([[-1 ,0 ,0 ,0.65],
-                       [0 ,0 ,4 ,0],
+                       [0 ,0 ,1 ,0],
                        [0 ,1 ,0 ,0],
                        [0 ,0 ,0 ,1]])
 #my_chain = Chain.from_urdf_file("/home/tanakrit/exca_ws/src/exca_bringup/urdf/exca_urdf.urdf.xacro")
