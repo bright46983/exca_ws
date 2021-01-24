@@ -37,10 +37,10 @@ def cmd_setup(cmd,x,y,z,w):
 def GotoPoint(req): 
     global joint_state
     cmd = Twist()
-    time_limit = 15
-    speed = 1
+    time_limit = 20
+    speed = 1.4
 
-    goal = np.array([[-1 ,0 ,0 ,0],
+    goal = np.array([[-1 ,0 ,0 ,0.65],
                        [0 ,0 ,1 ,0],
                        [0 ,1 ,0 ,0],
                        [0 ,0 ,0 ,1]])
@@ -51,6 +51,7 @@ def GotoPoint(req):
     ik = exca_chain.inverse_kinematics(goal,initial_position=[0,0,0.35,0.35,0.35,0])
     goal_diff = ik[2:5] - joint_state[1:4]
     #rospy.loginfo('Go to point: '+ req.goal)
+    print(goal)
     print(ik)
     print(joint_state)
     boom_cw = 1 if goal_diff[0] > 0 else -1
@@ -112,13 +113,14 @@ def GotoPoint(req):
 def Penetrate(req): ##Penetrate
     cmd = Twist()
     time_limit = 5
+    print(req.penetrate_goal)
     
     tf.waitForTransform("/base_footprint","/bucket_tip", rospy.Time(), rospy.Duration(1.0))
     t = tf.getLatestCommonTime("/base_footprint","/bucket_tip")
     position, quaternion = tf.lookupTransform("/base_footprint","/bucket_tip", t)
     depth = position[2]#Lookup transform
     depth_goal =  depth - req.penetrate_goal 
-    
+    print(depth_goal)
     time.sleep(1)
     cmd_setup(cmd,1,-0.8,0,0)
 
@@ -134,6 +136,7 @@ def Penetrate(req): ##Penetrate
          time_used = time.time() - start_time 
          if (time_used > time_limit):
              cmd_setup(cmd,0,0,0,0)
+             rospy.loginfo('Time out')
              return ExcaGoalResponse(False)
     cmd_setup(cmd,0,0,0,0)
     return ExcaGoalResponse(True)
@@ -144,7 +147,11 @@ def Penetrate(req): ##Penetrate
 def Drag(req): ##Drag
     cmd = Twist()
     time_limit = 10
-    
+
+    time.sleep(1)
+    cmd_setup(cmd,0,0,-1.2,0)
+    time.sleep(2.3)
+
     tf.waitForTransform("/base_footprint","/bucket_tip", rospy.Time(), rospy.Duration(1.0))
     t = tf.getLatestCommonTime("/base_footprint","/bucket_tip")
     position, quaternion = tf.lookupTransform("/base_footprint","/bucket_tip", t)
@@ -152,7 +159,7 @@ def Drag(req): ##Drag
     length_goal =  length - req.drag_goal #req.depth_goal#From srv
 
     time.sleep(1)
-    cmd_setup(cmd,-1,-1.1,0,0) 
+    cmd_setup(cmd,-0.9,-1,0,0) 
 
     start_time = time.time()
     while length > length_goal:

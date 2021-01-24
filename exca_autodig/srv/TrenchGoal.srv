@@ -1,0 +1,11 @@
+float64 position_x
+float64 position_y
+float64 length_x
+float64 length_y
+float64 depth
+---
+float64 poa_x
+float64 poa_y
+float64 poa_z
+float64 penetrate_depth
+float64 drag_length

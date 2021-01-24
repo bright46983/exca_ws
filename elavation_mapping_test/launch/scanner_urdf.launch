@@ -2,7 +2,7 @@
 
     <param name="robot_description" command="$(find xacro)/xacro.py $(find elavation_mapping_test)/urdf/scanner.urdf.xacro" />
 
-    <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" output="screen" clear_params="true">
+    <node name="scanner_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" output="screen" clear_params="true">
         <remap from="joint_states" to="dynamixel_workbench/joint_states" />
         <param name="publish_frequency" type="double" value="100" />
         <param name="publish_frequency" type="double" value="100" />

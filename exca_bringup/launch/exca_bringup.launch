@@ -2,7 +2,7 @@
 
     <param name="robot_description" command="$(find xacro)/xacro.py $(find exca_bringup)/urdf/exca_urdf.urdf.xacro" />
 
-    <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" output="screen" clear_params="true">
+    <node name="exca_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" output="screen" clear_params="true">
         <param name="publish_frequency" type="double" value="100" />
         <param name="publish_frequency" type="double" value="100" />
         <param name="ignore_timestamp" type="bool" value="false" />
