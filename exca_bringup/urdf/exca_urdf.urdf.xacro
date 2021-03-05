@@ -7,7 +7,7 @@
   <joint name="swing_joint" type="revolute">
     <axis xyz="0 0 1"/>
     <limit effort="1000.0" lower="0.0" upper="6.28318" velocity="0.5"/>
-    <origin rpy="0 0 -1.5708" xyz="0.0 0.0 0.163"/>
+    <origin rpy="0.0 0 -1.5708" xyz="0.0 0.0 0.163"/>
     <parent link="base_footprint"/>
     <child link="swing_frame"/>
   </joint>

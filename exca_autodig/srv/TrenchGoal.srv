@@ -9,3 +9,4 @@ float64 poa_y
 float64 poa_z
 float64 penetrate_depth
 float64 drag_length
+bool finish

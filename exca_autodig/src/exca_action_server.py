@@ -38,7 +38,7 @@ def GotoPoint(req):
     global joint_state
     cmd = Twist()
     time_limit = 20
-    speed = 1.4
+    speed = 1.1
 
     goal = np.array([[-1 ,0 ,0 ,0.65],
                        [0 ,0 ,1 ,0],
@@ -48,7 +48,7 @@ def GotoPoint(req):
     goal[1,3] = req.goal[1]
     goal[2,3] = req.goal[2]
 
-    ik = exca_chain.inverse_kinematics(goal,initial_position=[0,0,0.35,0.35,0.35,0])
+    ik = exca_chain.inverse_kinematics(goal,initial_position=[0,0,0.5,1,0.4,0])
     goal_diff = ik[2:5] - joint_state[1:4]
     #rospy.loginfo('Go to point: '+ req.goal)
     print(goal)
@@ -139,6 +139,10 @@ def Penetrate(req): ##Penetrate
              rospy.loginfo('Time out')
              return ExcaGoalResponse(False)
     cmd_setup(cmd,0,0,0,0)
+    time.sleep(1)
+    cmd_setup(cmd,0,0,-1.5,0)
+    time.sleep(2.5)
+    cmd_setup(cmd,0,0,0,0)
     return ExcaGoalResponse(True)
         
     
@@ -147,10 +151,6 @@ def Penetrate(req): ##Penetrate
 def Drag(req): ##Drag
     cmd = Twist()
     time_limit = 10
-
-    time.sleep(1)
-    cmd_setup(cmd,0,0,-1.2,0)
-    time.sleep(2.3)
 
     tf.waitForTransform("/base_footprint","/bucket_tip", rospy.Time(), rospy.Duration(1.0))
     t = tf.getLatestCommonTime("/base_footprint","/bucket_tip")
@@ -182,17 +182,23 @@ def Closing(req): ##Bucket
     time.sleep(1)
     cmd_setup(cmd,0,0.0,-1.8,0)
     rospy.loginfo('Closing the bucket')
-    time.sleep(3.5)
+    time.sleep(4)
     cmd_setup(cmd,-1.5,0,0,0)
-    time.sleep(3)
+    time.sleep(4.5)
     cmd_setup(cmd,0,0,0,0)
     return ExcaGoalResponse(True)
 
-def step6(cmd): ##Swing
-    time.sleep(2)
-    cmd_setup(cmd,0,0.0,0,2.5)
-    time.sleep(2)
+def Dump(req): ##Swing
+    cmd = Twist()
+    time.sleep(1)
+    cmd_setup(cmd,0,0.0,0,1.8)
+    time.sleep(1.5)
+    cmd_setup(cmd,0,0,1.5,0)
+    time.sleep(3.2)
+    cmd_setup(cmd,0,0.0,0,-2.5)
+    time.sleep(2.1)
     cmd_setup(cmd,0,0,0,0)
+    return ExcaGoalResponse(True)
 
 def step7(cmd): ##Dump
     time.sleep(2)
@@ -224,7 +230,7 @@ if __name__ == "__main__":
     URDFLink(
       name="swing_frame",
       translation_vector=[0, 0, 0.163],
-      orientation=[0, 0, -1.578],
+      orientation=[0.1, 0, -1.578],
       rotation=[0, 0, 1],
     ),
     URDFLink(
@@ -261,6 +267,7 @@ if __name__ == "__main__":
     stop_srv = rospy.Service('stop',ExcaGoal,Stop)
     point_srv = rospy.Service('gotopoint',ExcaGoal,GotoPoint)
     close_srv = rospy.Service('close',ExcaGoal,Closing)
+    dump_srv = rospy.Service('dump',ExcaGoal,Dump)
     recovery_srv = rospy.Service('recovery',ExcaGoal,Recovery)
 
     pub = rospy.Publisher("/input_joy/cmd_vel",Twist,queue_size=1)

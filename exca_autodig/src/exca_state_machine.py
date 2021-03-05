@@ -4,20 +4,47 @@ import rospy
 import smach
 from exca_autodig.srv import ExcaGoal ,ExcaGoalRequest, ExcaGoalResponse
 from exca_autodig.srv import TrenchGoal, TrenchGoalRequest, TrenchGoalResponse
-
-
+from geometry_msgs.msg import PointStamped
+from std_srvs.srv import Empty
+import tf
 
 class FindPoa(smach.State):
     def __init__(self):
-        smach.State.__init__(self, outcomes=['found_poa'],input_keys=['findpoa_goal'],output_keys=['poa'])
+        smach.State.__init__(self, outcomes=['found_poa','no_poa'],input_keys=['findpoa_goal'],output_keys=['poa'])
         rospy.wait_for_service('find_poa')
         self.poa_srv = rospy.ServiceProxy('find_poa',TrenchGoal)
+        rospy.wait_for_service('/elevation_mapping/disable_updates')
+        self.dis_update = rospy.ServiceProxy('/elevation_mapping/disable_updates',Empty)
+        
 
     def execute(self, userdata):
+        tff = tf.TransformListener()
         rospy.loginfo('Executing state FindPoa')
-        poa = self.poa_srv(userdata.findpoa_goal[0],userdata.findpoa_goal[1],userdata.findpoa_goal[2],userdata.findpoa_goal[3],userdata.findpoa_goal[4])
-        userdata.poa = [[poa.poa_x,poa.poa_y,poa.poa_z],poa.drag_length,poa.penetrate_depth]
-        rospy.loginfo("POA: %f,%f,%f   Length:%f   Depth:%f",poa.poa_x,poa.poa_y,poa.poa_z,poa.drag_length,poa.penetrate_depth)
+        poa_res = self.poa_srv(userdata.findpoa_goal[0],userdata.findpoa_goal[1],userdata.findpoa_goal[2],userdata.findpoa_goal[3],userdata.findpoa_goal[4])
+        
+        tff.waitForTransform("/base_footprint","/map", rospy.Time(), rospy.Duration(1.0))
+
+        poa_map = PointStamped()
+        poa_map.header.frame_id = "map"
+        poa_map.header.stamp = rospy.Time.now()
+        
+
+        
+        if not poa_res.finish:
+            poa_map.point.x = userdata.findpoa_goal[0] - userdata.findpoa_goal[2] + 0.05
+            poa_map.point.y = userdata.findpoa_goal[1]
+            poa_map.point.z = -userdata.findpoa_goal[4] +0.02
+            poa = tff.transformPoint("base_footprint", poa_map)
+            userdata.poa = [[poa.point.x,poa.point.y,poa.point.z],userdata.findpoa_goal[3],0]
+            return 'no_poa'
+
+        poa_map.point.x = poa_res.poa_x
+        poa_map.point.y = poa_res.poa_y
+        poa_map.point.z = poa_res.poa_z
+        poa = tff.transformPoint("base_footprint", poa_map)
+        userdata.poa = [[poa.point.x,poa.point.y,poa.point.z],poa_res.drag_length,poa_res.penetrate_depth]
+        rospy.loginfo("POA: %f,%f,%f   Length:%f   Depth:%f",poa.point.x,poa.point.y,poa.point.z,poa_res.drag_length,poa_res.penetrate_depth)
+        self.dis_update()
         return 'found_poa'
 
 class GotoPoint(smach.State):
@@ -88,20 +115,74 @@ class Closing(smach.State):
             rospy.loginfo('Fail to Close')
             return 'abort'
 
+
+class Dump(smach.State):
+    def __init__(self):
+        smach.State.__init__(self, outcomes=['finish_dump'])
+        rospy.wait_for_service('/elevation_mapping/enable_updates')
+        self.en_update = rospy.ServiceProxy('/elevation_mapping/enable_updates',Empty)
+        rospy.wait_for_service('dump')
+        self.dump_srv = rospy.ServiceProxy('dump',ExcaGoal)
+
+    def execute(self, userdata):
+        rospy.loginfo('Executing state Dump')
+        self.en_update()
+        exca_goal = [[0.45,0,0],-0.02,0.30]
+        goal_reached= self.dump_srv(exca_goal[0],exca_goal[1],exca_goal[2],0)
+        rospy.sleep(20)
+        return 'finish_dump'
+
+
 class Recovery(smach.State):
     def __init__(self):
         smach.State.__init__(self, outcomes=['finish_recovery'])
         rospy.wait_for_service('recovery')
         self.recovery_srv = rospy.ServiceProxy('recovery',ExcaGoal)
+        rospy.wait_for_service('/elevation_mapping/enable_updates')
+        self.en_update = rospy.ServiceProxy('/elevation_mapping/enable_updates',Empty)
 
     def execute(self, userdata):
         rospy.loginfo('Executing state Recovery')
+        self.en_update()
         exca_goal = [[0.45,0,0],-0.02,0.30]
         goal_reached= self.recovery_srv(exca_goal[0],exca_goal[1],exca_goal[2],0)
         if goal_reached.finish:
             rospy.loginfo('Finish Recovery')
             return 'finish_recovery'
         
+    
+class Finshing(smach.State):
+    def __init__(self):
+        smach.State.__init__(self, outcomes=['trench_complete','abort'],input_keys=['finishing_goal'])
+        rospy.wait_for_service('gotopoint')
+        self.gotofin_srv = rospy.ServiceProxy('gotopoint',ExcaGoal)
+        rospy.wait_for_service('drag')
+        self.dragfin_srv = rospy.ServiceProxy('drag',ExcaGoal)
+        rospy.wait_for_service('close')
+        self.closefin_srv = rospy.ServiceProxy('close',ExcaGoal)
+        rospy.wait_for_service('dump')
+        self.dumpfin_srv = rospy.ServiceProxy('dump',ExcaGoal)
+
+    def execute(self, userdata):
+        rospy.loginfo('Executing state Finishing')
+        goal_reached = self.gotofin_srv(userdata.finishing_goal[0],userdata.finishing_goal[1],userdata.finishing_goal[2],0)
+        if goal_reached.finish:
+            rospy.loginfo('Finish GotoPoint')
+            goal_reached = self.dragfin_srv(userdata.finishing_goal[0],userdata.finishing_goal[1],userdata.finishing_goal[2],0)
+            if goal_reached.finish:
+                rospy.loginfo('Finish Drag')
+                exca_goal = [[0.45,0,0],-0.02,0.30]
+                goal_reached = self.closefin_srv(exca_goal[0],exca_goal[1],exca_goal[2],0)
+                goal_reached= self.dumpfin_srv(exca_goal[0],exca_goal[1],exca_goal[2],0)
+                return 'trench_complete'
+
+            else:
+                rospy.loginfo('Fail to Drag')
+                return 'abort'
+            
+        else:
+            rospy.loginfo('Fail to GotoPoint')
+            return 'abort'
 
 
 # main
@@ -110,13 +191,14 @@ def main():
 
     # Create a SMACH state machine
     sm = smach.StateMachine(outcomes=['outcome4'])
-    sm.userdata.trench_goal = [0.5,0,1,0.5,3]
+    sm.userdata.trench_goal = [0.5,0,0.2,0.2,0.05]
 
     # Open the container
     with sm:
         # Add states to the container
         smach.StateMachine.add('FindPoa', FindPoa(), 
-                               transitions={'found_poa':'GotoPoint'},
+                               transitions={'found_poa':'GotoPoint',
+                                            'no_poa':'Finishing'},
                                 remapping={'findpoa_goal':'trench_goal',
                                             'poa' : 'exca_goal'})
         smach.StateMachine.add('GotoPoint', GotoPoint(), 
@@ -132,8 +214,14 @@ def main():
                                             'abort':'Recovery'},
                                 remapping={'drag_goal':'exca_goal'})
         smach.StateMachine.add('Closing', Closing(), 
-                               transitions={'closed':'Recovery', 
+                               transitions={'closed':'Dump', 
                                             'abort':'Recovery'})
+        smach.StateMachine.add('Dump', Dump(), 
+                               transitions={'finish_dump':'FindPoa'})
+        smach.StateMachine.add('Finishing', Finshing(), 
+                                transitions={'trench_complete':'outcome4', 
+                                            'abort':'Recovery'},
+                                remapping={'finishing_goal':'exca_goal'})
         smach.StateMachine.add('Recovery', Recovery(), 
                                transitions={'finish_recovery':'outcome4'})
 
