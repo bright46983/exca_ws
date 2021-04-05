@@ -1,6 +1,6 @@
 float64[] goal
 float64 drag_goal
 float64 penetrate_goal
-float64 bucket_angle
+float64 distance_goal
 ---
 bool finish

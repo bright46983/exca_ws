@@ -15,12 +15,17 @@ teleop:
         target: linear.y
         scale: 3
       -
-        axis: 5 ## Digital Up down ---> Bucket
+        axis: 0 ## Analog Left Right ---> Bucket
         target: linear.z
         scale: 3
       -
         axis: 4 ## Digital Left Right ---> Swing
         target: angular.x
+        scale: 3.0
+
+      -
+        axis: 5 ## Digital Up Down ---> Wheel
+        target: angular.y
         scale: 3.0
 
  

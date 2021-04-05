@@ -17,8 +17,6 @@
   <!-- Launch RViz with the demo configuration -->
   <node name="rviz" pkg="rviz" type="rviz" args="-d $(find elevation_mapping_demos)/rviz/elevation_map_visualization.rviz" />
 
-  <node pkg="tf" type="static_transform_publisher" name="map_to_exca"
-    args="0.98 0.0 0.0 3.14159 0.0 0.0 /map /base_footprint 40" />
   
 
 

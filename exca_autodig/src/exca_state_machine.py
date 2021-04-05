@@ -191,7 +191,7 @@ def main():
 
     # Create a SMACH state machine
     sm = smach.StateMachine(outcomes=['outcome4'])
-    sm.userdata.trench_goal = [0.5,0,0.2,0.2,0.05]
+    sm.userdata.trench_goal = [0.5,0,0.2,0.1,0.07]
 
     # Open the container
     with sm:

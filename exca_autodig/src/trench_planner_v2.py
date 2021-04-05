@@ -56,7 +56,7 @@ def gridmap_plot(req):
 
     set_point(submap,real_pos_x,real_pos_y)
 
-    plt.plot(real_pos_x,data_array[y_size/2,:])
+    plt.plot(real_pos_y,data_array[:,x_size/2])
     plt.ylim((-0.3,0.1))
     plt.show() 
     return TrenchGoalResponse(0,0,0,0,0,True)
@@ -84,10 +84,10 @@ def find_poa(req):
 
     rospy.loginfo("Finding POA...")
     #Score Array
-    depth_score = data_array[y_size/2,:]
+    depth_score = data_array[:,x_size/2]
     s = np.where(depth_score<= -req.depth+depth_err,0,1)
     print(s)
-    length_score = np.arange(0,x_size)*0.01
+    length_score = np.arange(0,y_size)*0.01
     total_score =  s*(depth_score + length_score*length_weigth)  
     
     #Check finish
@@ -107,7 +107,7 @@ def find_poa(req):
     rospy.loginfo("POA: %f , %f , %f",poa_x,poa_y,poa_z)
     #Depth & Length
     penetrate_depth = depth_max if poa_z+req.depth > depth_max else  poa_z+req.depth 
-    drag_length = length_max if (real_pos_x[0]) - poa_x > length_max else (real_pos_x[0]) - poa_x
+    drag_length = length_max if (real_pos_y[0]) - poa_y > length_max else (real_pos_y[0]) - poa_y
     return TrenchGoalResponse(poa_x,poa_y,poa_z,penetrate_depth,drag_length,True)
 
 if __name__ == "__main__":

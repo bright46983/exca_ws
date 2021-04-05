@@ -3,7 +3,7 @@
 import rospy
 from geometry_msgs.msg import Twist 
 import time
-import tf
+import tf 
 from sensor_msgs.msg import JointState
 from exca_autodig.srv import ExcaGoal
 from exca_autodig.srv import ExcaGoalRequest
@@ -25,14 +25,51 @@ def stateCallback(data):
         joint_state[i] = 0 if joint_state[i] > 5.5 else joint_state[i]
     #print(joint_state)
 
-def cmd_setup(cmd,x,y,z,w):
+def cmd_setup(cmd,x,y,z,wx,wy):
     cmd.linear.x = x #Boom
     cmd.linear.y = y #Arm
     cmd.linear.z = z #Buk
-    cmd.angular.x = w #Swing
-    cmd.angular.y = 0
+    cmd.angular.x = wx #Swing
+    cmd.angular.y = wy
     cmd.angular.z = 0
     pub.publish(cmd)
+
+def Move(req):
+    cmd = Twist()
+    time_limit = 5
+    tf.waitForTransform("/odom","/base_footprint", rospy.Time(), rospy.Duration(1.0))
+    t = tf.getLatestCommonTime("/odom","/base_footprint")
+    position, quaternion = tf.lookupTransform("/odom","/base_footprint", t)
+    distance = position[1]#Lookup transform
+    rospy.loginfo('Initial Distance: %f',distance)
+    dis_goal =  distance + req.distance_goal
+    cw = req.distance_goal/abs(req.distance_goal)
+    time.sleep(1)
+    start_time = time.time()
+    cmd_setup(cmd,0,0,0,0,-cw*1.5)
+    while distance*cw < dis_goal*cw:
+         tf.waitForTransform("/odom","/base_footprint", rospy.Time(), rospy.Duration(1.0))
+         t = tf.getLatestCommonTime("/odom","/base_footprint")
+         position, quaternion = tf.lookupTransform("/odom","/base_footprint", t)
+         distance = position[1]#Lookup transform
+         
+        #  time_used = time.time() - start_time 
+        #  if (time_used > time_limit):
+        #      cmd_setup(cmd,0,0,0,0,0)
+        #      rospy.loginfo('Time out')
+        #      return ExcaGoalResponse(False)
+    cmd_setup(cmd,0,0,0,0,0)
+    time.sleep(1)
+    t = tf.getLatestCommonTime("/odom","/base_footprint")
+    position, quaternion = tf.lookupTransform("/odom","/base_footprint", t)
+    distance = position[1]#Lookup transform
+
+    rospy.loginfo('Final Distance: %f',distance)
+    # time.sleep(1)
+    # cmd_setup(cmd,0,0,0,0,0)
+    return ExcaGoalResponse(True)
+    
+
 
 def GotoPoint(req): 
     global joint_state
@@ -95,12 +132,12 @@ def GotoPoint(req):
         time_used = time.time() - start_time 
         if (time_used > time_limit):
              time.sleep(0.1)
-             cmd_setup(cmd,0,0,0,0)
+             cmd_setup(cmd,0,0,0,0,0)
              rospy.loginfo('Time Out')
              return ExcaGoalResponse(False)
 
     time.sleep(0.1)
-    cmd_setup(cmd,0,0,0,0)
+    cmd_setup(cmd,0,0,0,0,0)
     rospy.loginfo('Point Reached')
     return ExcaGoalResponse(True)
 
@@ -122,7 +159,7 @@ def Penetrate(req): ##Penetrate
     depth_goal =  depth - req.penetrate_goal 
     print(depth_goal)
     time.sleep(1)
-    cmd_setup(cmd,1,-0.8,0,0)
+    cmd_setup(cmd,1,-0.8,0,0,0)
 
     start_time = time.time()
     while depth > depth_goal:
@@ -135,14 +172,14 @@ def Penetrate(req): ##Penetrate
          
          time_used = time.time() - start_time 
          if (time_used > time_limit):
-             cmd_setup(cmd,0,0,0,0)
+             cmd_setup(cmd,0,0,0,0,0)
              rospy.loginfo('Time out')
              return ExcaGoalResponse(False)
-    cmd_setup(cmd,0,0,0,0)
+    cmd_setup(cmd,0,0,0,0,0)
     time.sleep(1)
-    cmd_setup(cmd,0,0,-1.5,0)
+    cmd_setup(cmd,0,0,-1.5,0,0)
     time.sleep(2.5)
-    cmd_setup(cmd,0,0,0,0)
+    cmd_setup(cmd,0,0,0,0,0)
     return ExcaGoalResponse(True)
         
     
@@ -159,7 +196,7 @@ def Drag(req): ##Drag
     length_goal =  length - req.drag_goal #req.depth_goal#From srv
 
     time.sleep(1)
-    cmd_setup(cmd,-0.9,-1,0,0) 
+    cmd_setup(cmd,-0.9,-1,0,0,0) 
 
     start_time = time.time()
     while length > length_goal:
@@ -172,54 +209,50 @@ def Drag(req): ##Drag
 
          time_used = time.time() - start_time 
          if (time_used > time_limit):
-             cmd_setup(cmd,0,0,0,0)
+             cmd_setup(cmd,0,0,0,0,0)
              return ExcaGoalResponse(False)
-    cmd_setup(cmd,0,0,0,0)
+    cmd_setup(cmd,0,0,0,0,0)
     return ExcaGoalResponse(True)
 
 def Closing(req): ##Bucket
     cmd = Twist()
     time.sleep(1)
-    cmd_setup(cmd,0,0.0,-1.8,0)
+    cmd_setup(cmd,0,0.0,-1.8,0,0)
     rospy.loginfo('Closing the bucket')
     time.sleep(4)
-    cmd_setup(cmd,-1.5,0,0,0)
-    time.sleep(4.5)
-    cmd_setup(cmd,0,0,0,0)
+    cmd_setup(cmd,-1.5,0,0,0,0)
+    time.sleep(5)
+    cmd_setup(cmd,0,0,0,0,0)
     return ExcaGoalResponse(True)
 
 def Dump(req): ##Swing
     cmd = Twist()
     time.sleep(1)
-    cmd_setup(cmd,0,0.0,0,1.8)
+    cmd_setup(cmd,0,0.0,0,1.8,0)
     time.sleep(1.5)
-    cmd_setup(cmd,0,0,1.5,0)
-    time.sleep(3.2)
-    cmd_setup(cmd,0,0.0,0,-2.5)
-    time.sleep(2.1)
-    cmd_setup(cmd,0,0,0,0)
+    cmd_setup(cmd,0,0,1.5,0,0)
+    time.sleep(3.8)
+    cmd_setup(cmd,0,0.0,0,-2.5,0)
+    time.sleep(1.96)
+    cmd_setup(cmd,0,0,0,0,0)
     return ExcaGoalResponse(True)
 
-def step7(cmd): ##Dump
-    time.sleep(2)
-    cmd_setup(cmd,0,1.85,2,0)
-    time.sleep(2)
-    cmd_setup(cmd,0,0,0,0)
+
 
 def Recovery(req): 
     cmd = Twist()
     rospy.loginfo('Recovering Excavator')
     time.sleep(2)
-    cmd_setup(cmd,-1.8,0,0,0)
+    cmd_setup(cmd,-1.8,0,0,0,0)
     time.sleep(2.5)
-    cmd_setup(cmd,0,1.5,1.8,0)
+    cmd_setup(cmd,0,1.5,1.8,0,0)
     time.sleep(2)
-    cmd_setup(cmd,0,0,0,0)
+    cmd_setup(cmd,0,0,0,0,0)
     return ExcaGoalResponse(True)
 
 def Stop(req): ##Return
     cmd = Twist()
-    cmd_setup(cmd,0,0,0,0)
+    cmd_setup(cmd,0,0,0,0,0)
     return ExcaGoalResponse(True)
 
     
@@ -230,7 +263,7 @@ if __name__ == "__main__":
     URDFLink(
       name="swing_frame",
       translation_vector=[0, 0, 0.163],
-      orientation=[0.1, 0, -1.578],
+      orientation=[0, 0, -1.578],
       rotation=[0, 0, 1],
     ),
     URDFLink(
@@ -269,6 +302,7 @@ if __name__ == "__main__":
     close_srv = rospy.Service('close',ExcaGoal,Closing)
     dump_srv = rospy.Service('dump',ExcaGoal,Dump)
     recovery_srv = rospy.Service('recovery',ExcaGoal,Recovery)
+    move_srv = rospy.Service('move',ExcaGoal,Move)
 
     pub = rospy.Publisher("/input_joy/cmd_vel",Twist,queue_size=1)
     sub = rospy.Subscriber("/joint_states",JointState,stateCallback)
